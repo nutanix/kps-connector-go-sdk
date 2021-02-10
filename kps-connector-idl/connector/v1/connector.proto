@@ -1,0 +1,312 @@
+syntax = "proto3";
+package connector.v1;
+option go_package = "connector/v1;connector";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+// Connector Service
+service ConnectorService {
+    // GetPayload should return all payloads given a payload kind:
+    //   - If payload kind is set to STREAM, it should return all available streams (including discovered streams)
+    //   - If payload kind is set to CONFIG, it should return the current config in use.
+    rpc GetPayload (GetPayloadRequest) returns (GetPayloadResponse);
+
+    // SetPayload takes a connector ID and a list of payloads and applies those
+    // payloads to the relevant connector:
+    //   - Payloads of kind STREAM should be subscribed to by the connector
+    //   - Payloads of kind CONFIG should be used to update the current connector config
+    rpc SetPayload (SetPayloadRequest) returns (SetPayloadResponse);
+
+    // GetEvents returns all the events for a given connector ID. Events can be of type Alert or Status
+    rpc GetEvents (GetEventsRequest) returns (GetEventsResponse);
+}
+
+// PayloadKind specifies the type of Payload e.g. Stream, Config, etc. The enum is
+// expected to grow as new use cases arise. We do not intend to have credentials
+// as a payload kind as it is not a good practice to transfer credentials via a
+// cleartext API. We recommend developers use Kubernetes secrets for credentials
+// management.
+enum PayloadKind {
+    PAYLOAD_KIND_UNSPECIFIED = 0;
+    PAYLOAD_KIND_STREAM = 1;
+    PAYLOAD_KIND_CONFIG = 2;
+}
+
+// GetPayloadRequest specifies the PayloadKind of expected Payloads requested
+// for a given connector ID. e.g. A GetPayloadRequest with kind set to STREAM is
+// expected to return all available streams for that connector ID.
+message GetPayloadRequest {
+    string connector_id = 1;
+    PayloadKind kind = 2;
+}
+
+// GetPayloadResponse specifies the status of the request and the Payloads
+message GetPayloadResponse {
+    ResponseStatus status = 1;
+    repeated Payload payloads = 2;
+}
+
+// SetPayloadRequest specifies the Payloads to be applied to a connector with
+// a given connector ID.
+message SetPayloadRequest {
+    string connector_id = 1;
+    repeated Payload payloads = 2;
+}
+
+// SetPayloadResponse specifies the status of the request
+message SetPayloadResponse {
+    ResponseStatus status = 1;
+}
+
+enum StreamDirection {
+    STREAM_DIRECTION_UNSPECIFIED = 0;
+    // StreamDirectionToTransport specifies a direction where data flows from the stream to data pipeline transport
+    STREAM_DIRECTION_FROM_STREAM_TO_TRANSPORT = 1;
+    // StreamDirectionFromTransport specifies a direction where data flows from data pipeline transport to the stream
+    STREAM_DIRECTION_FROM_TRANSPORT_TO_STREAM = 2;
+}
+
+// Stream is a mechanism for:
+//   - Discovering what available streams can be subscribed to via GetPayloadRequest
+//   - Subscribing/Unsubscribing to those streams via SetPayloadRequest
+message Stream {
+    // name is an identifier for the stream
+    string id = 1;
+
+    // subscribed specifies whether the stream is already subscribed to
+    bool subscribed = 2;
+
+    // discovered specifies whether the stream was discovered by the connector instance
+    bool discovered = 3;
+
+    // direction specifies the direction of data flow for a given stream i.e. from stream / to stream
+    StreamDirection direction = 4;
+
+    // transport_channel specifies the channel for sending the stream through or receiving the stream from
+    string transport_channel = 5;
+
+    // metadata is for storing the stream object
+    google.protobuf.Struct metadata = 6;
+}
+
+// Config is a mechanism for handling dynamic config in the connector. For static config, we
+// recommend using config defined in kubernetes resource definition.
+message Config {
+    google.protobuf.Struct metadata = 1;
+}
+
+// Payload is a union of possible payload types
+message Payload {
+    oneof object {
+        Config config = 1;
+        Stream stream = 2;
+    }
+}
+
+message TransportMessage {
+    int64 timestamp = 1; // Epoch time in nanosecs
+    repeated bytes payload = 3;
+}
+
+// Status wraps the code, message, and details necessary for understanding the response from the connector
+message ResponseStatus {
+    ResponseCode code = 1;
+    string message = 2;
+    repeated google.protobuf.Any details = 3;
+}
+
+// ResponseCode provides a subset of response codes that are modelled after the HTTP-style error codes for specifying
+// the state of the request. All successful requests should return OK. All other requests should appropriately
+// set the right error code.
+enum ResponseCode {
+    RESPONSE_CODE_UNSPECIFIED = 0;
+
+    // Not an error; returned on success
+    //
+    // HTTP Mapping: 200 OK
+    RESPONSE_CODE_OK = 1;
+
+    // The operation was cancelled, typically by the caller.
+    //
+    // HTTP Mapping: 499 Client Closed Request
+    RESPONSE_CODE_CANCELLED = 2;
+
+    // Unknown error.  For example, this error may be returned when
+    // a `Status` value received from another address space belongs to
+    // an error space that is not known in this address space.  Also
+    // errors raised by APIs that do not return enough error information
+    // may be converted to this error.
+    //
+    // HTTP Mapping: 500 Internal Server Error
+    RESPONSE_CODE_UNKNOWN = 3;
+
+    // The client specified an invalid argument.  Note that this differs
+    // from `FAILED_PRECONDITION`.  `INVALID_ARGUMENT` indicates arguments
+    // that are problematic regardless of the state of the system
+    // (e.g., a malformed file name).
+    //
+    // HTTP Mapping: 400 Bad Request
+    RESPONSE_CODE_INVALID_ARGUMENT = 4;
+
+    // The deadline expired before the operation could complete. For operations
+    // that change the state of the system, this error may be returned
+    // even if the operation has completed successfully.  For example, a
+    // successful response from a server could have been delayed long
+    // enough for the deadline to expire.
+    //
+    // HTTP Mapping: 504 Gateway Timeout
+    RESPONSE_CODE_DEADLINE_EXCEEDED = 5;
+
+    // Some requested entity (e.g., file or directory) was not found.
+    //
+    // Note to server developers: if a request is denied for an entire class
+    // of users, such as gradual feature rollout or undocumented whitelist,
+    // `NOT_FOUND` may be used. If a request is denied for some users within
+    // a class of users, such as user-based access control, `PERMISSION_DENIED`
+    // must be used.
+    //
+    // HTTP Mapping: 404 Not Found
+    RESPONSE_CODE_NOT_FOUND = 6;
+
+    // The entity that a client attempted to create (e.g., file or directory)
+    // already exists.
+    //
+    // HTTP Mapping: 409 Conflict
+    RESPONSE_CODE_ALREADY_EXISTS = 7;
+
+    // The caller does not have permission to execute the specified
+    // operation. `PERMISSION_DENIED` must not be used for rejections
+    // caused by exhausting some resource (use `RESOURCE_EXHAUSTED`
+    // instead for those errors). `PERMISSION_DENIED` must not be
+    // used if the caller can not be identified (use `UNAUTHENTICATED`
+    // instead for those errors). This error code does not imply the
+    // request is valid or the requested entity exists or satisfies
+    // other pre-conditions.
+    //
+    // HTTP Mapping: 403 Forbidden
+    RESPONSE_CODE_PERMISSION_DENIED = 8;
+
+    // The request does not have valid authentication credentials for the
+    // operation.
+    //
+    // HTTP Mapping: 401 Unauthorized
+    RESPONSE_CODE_UNAUTHENTICATED = 9;
+
+    // Some resource has been exhausted, perhaps a per-user quota, or
+    // perhaps the entire file system is out of space.
+    //
+    // HTTP Mapping: 429 Too Many Requests
+    RESPONSE_CODE_RESOURCE_EXHAUSTED = 10;
+
+    // The operation was rejected because the system is not in a state
+    // required for the operation's execution.  For example, the directory
+    // to be deleted is non-empty, an rmdir operation is applied to
+    // a non-directory, etc.
+    //
+    // HTTP Mapping: 400 Bad Request
+    RESPONSE_CODE_FAILED_PRECONDITION = 11;
+
+    // The operation was aborted, typically due to a concurrency issue such as
+    // a sequencer check failure or transaction abort.
+    //
+    // HTTP Mapping: 409 Conflict
+    RESPONSE_CODE_ABORTED = 12;
+
+    // The operation was attempted past the valid range.  E.g., seeking or
+    // reading past end-of-file.
+    //
+    // Unlike `INVALID_ARGUMENT`, this error indicates a problem that may
+    // be fixed if the system state changes. For example, a 32-bit file
+    // system will generate `INVALID_ARGUMENT` if asked to read at an
+    // offset that is not in the range [0,2^32-1], but it will generate
+    // `OUT_OF_RANGE` if asked to read from an offset past the current
+    // file size.
+    //
+    // HTTP Mapping: 400 Bad Request
+    RESPONSE_CODE_OUT_OF_RANGE = 13;
+
+    // The operation is not implemented or is not supported/enabled in this
+    // service.
+    //
+    // HTTP Mapping: 501 Not Implemented
+    RESPONSE_CODE_UNIMPLEMENTED = 14;
+
+    // Internal errors.  This means that some invariants expected by the
+    // underlying system have been broken.  This error code is reserved
+    // for serious errors.
+    //
+    // HTTP Mapping: 500 Internal Server Error
+    RESPONSE_CODE_INTERNAL = 15;
+
+    // The service is currently unavailable.  This is most likely a
+    // transient condition, which can be corrected by retrying with
+    // a backoff. Note that it is not always safe to retry
+    // non-idempotent operations.
+    //
+    // HTTP Mapping: 503 Service Unavailable
+    RESPONSE_CODE_UNAVAILABLE = 16;
+
+    // Unrecoverable data loss or corruption.
+    //
+    // HTTP Mapping: 500 Internal Server Error
+    RESPONSE_CODE_DATA_LOSS = 17;
+}
+
+
+enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    SEVERITY_INFO = 1;
+    SEVERITY_WARNING = 2;
+    SEVERITY_CRITICAL = 3;
+}
+
+enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_PROVISIONING = 1;
+    STATE_PROVISIONED = 2;
+    STATE_FAILED = 3;
+    STATE_HEALTHY = 4;
+    STATE_UNHEALTHY = 5;
+}
+
+// Alert
+message Alert {
+    string id = 1;
+    string stream_id = 2;
+    string message = 3;
+    Severity severity = 4;
+    State state = 5;
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Struct metadata = 7;
+}
+
+// Status
+message Status {
+    string id = 1;
+    string stream_id = 2;
+    string message = 3;
+    State state = 4;
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Struct metadata = 6;
+}
+
+// Payload is a union of possible payload types
+message EventPayload {
+    oneof object {
+        Alert alert = 1;
+        Status status = 2;
+    }
+}
+
+// GetEventsRequest specifies the connector ID of the connector to fetch the events from
+message GetEventsRequest {
+    string connector_id = 1;
+}
+
+// GetEventsResponse specifies the status of the request along with the list of events
+message GetEventsResponse {
+    ResponseStatus status = 1;
+    repeated EventPayload event_payloads = 2;
+}
