@@ -9,12 +9,17 @@ jobs:
         uses: actions/checkout@v1
         with:
           ref: main
+          submodules: recursive
+          token: ${{ secrets.IDL_PAT }}
       - name: checkout-main
         if: success()
         run: git checkout main
       - name: checkout
         if: success()
         uses: actions/checkout@v1
+        with:
+          submodules: recursive
+          token: ${{ secrets.IDL_PAT }}
       # There is no need to do this if you are not installing from source
       - name: setup
         if: success()
