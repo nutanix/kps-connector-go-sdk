@@ -1,10 +1,10 @@
-# KPS Connector Go SDK
-This is the Golang SDK for building KPS Connectors.
+# Karbon Platform Services (KPS) Connector Go SDK
+Welcome to the Golang software development kit for building KPS Connectors.
 
 ## Overview
-A KPS Connector is a kubernetes application that implements a specific GRPC contract. The contract is described in
-the [kps-connector-idl](https://github.com/nutanix/kps-connector-idl) repository which has also been submoduled in this repository. Particularly,
-the service has to implement three methods in order to fulfil the Connector contract.
+A KPS Connector is a Kubernetes application that implements a specific gRPC remote procedure call (GRPC) contract. The contract is described in
+the [kps-connector-idl](https://github.com/nutanix/kps-connector-idl) repository, which has also been submoduled in this repository. Particularly,
+the service has to implement three methods to fulfil the Connector contract.
 
 ```proto
 service ConnectorService {
@@ -34,7 +34,7 @@ Category is a KPS abstraction which can be used as a selector for resources such
 #### Service Domain
 A service domain refers to a single-node or multi-node deployment of KPS.
 #### Data Pipeline
-A data pipeline is real time stream processing solution on KPS which can take input from connector streams, transform the data received from streams via functions, and output data into connector streams.
+A data pipeline is real time stream processing solution on KPS which can take input from connector streams, transform the data received from streams by using functions, and output data into connector streams.
 #### Function
 A function is a transformation that can be used to transform data in a data pipeline.
 
@@ -48,7 +48,8 @@ In the example below, note how the `image_tag` is used to set the docker image t
 - configParameterSchema: JSON schema of the connector config 
 - streamParameterSchema: JSON schema of the connector stream
 
-Here is an example of a `class.json`
+
+##### Example `class.json`
 ```json
 {
   "name": "natsconnector",
@@ -92,7 +93,7 @@ Here is an example of a `class.json`
 }
 ```
 
-The connector class can be registered with KPS using the CLI tool
+You can register the connector class with KPS by using the kps CLI tool.
 ```
 kps create connectorclass -f class.json
 ```
@@ -100,7 +101,7 @@ kps create connectorclass -f class.json
 #### Instance
 Instance is an instance of a connector deployed on a project namespace. For example, A NATS Connector class can be used to create a NATS connector instance on a project.
 Creating an instance requires the class and the values for static parameters of the class.
-Here is an example of a `instance.json`
+##### Example `instance.json`
 ```json
 {
   "name": "natsconnector",
@@ -112,7 +113,7 @@ Here is an example of a `instance.json`
 }
 ```
 
-The connector instance can be created using the CLI tool
+You can create the connector instance by using the kps CLI tool.
 ```
 kps create connectorinstance -f instance.json
 ```
@@ -120,7 +121,9 @@ kps create connectorinstance -f instance.json
 Stream is a singular unit of connection. It defines connection data needed for a connector to connect to the underlying resource.
 A stream that is designated for bringing data into a data pipeline has the direction `INGRESS` and a stream designated to move
 data out of a data pipeline has the direction `EGRESS`. For example, A NATS connector stream for moving data from a NATS
-subject into a data pipeline will define all the information needed to connect to a NATS subject. Here is an example of a `stream.json`
+subject into a data pipeline will define all the information needed to connect to a NATS subject. 
+
+##### Example `stream.json`
 ```json
 {
   "name": "natsconnectorstream-in",
@@ -141,12 +144,14 @@ subject into a data pipeline will define all the information needed to connect t
   }
 }
 ```
-The connector stream can be created using the CLI tool
+You can create the connector stream by using the CLI tool
 ```
 kps create connectorstream -f stream.json
 ```
 #### Config
-Config is a mechanism for receiving runtime configuration updates to the connector instance. Here's an example of `config.json`
+Config is a mechanism for receiving runtime configuration updates to the connector instance. 
+
+##### Example `config.json`
 ```json
 {
   "name": "natsconnectorsconfig",
@@ -160,19 +165,18 @@ Config is a mechanism for receiving runtime configuration updates to the connect
   ]
 }
 ```
-The connector config can be created using the CLI tool
+You can create the connector config by using the CLI tool
 ```
 kps create connectorconfig -f config.json
 ```
 #### Event
 Event is a mechanism to propagate events such as status and alerts on behalf of the connector. Events emitted by the
-connector can be either connector scoped or stream scoped. Connector scoped events can be viewed using the CLI by
-running the following commands.
+connector can be either connector scoped or stream scoped. View connector scoped events by using the CLI with the following command options.
 ```
 kps get connectorinstancealerts -s "svc-domain-1" -p NatsConnectorProject -i natsconnector
 kps get connectorinstancestatus -s "svc-domain-1" -p NatsConnectorProject -i natsconnector
 ```
-The scope can be further narrowed down to stream specific events by passing the stream name as shown in the following
+The scope can be further narrowed to stream specific events by passing the stream name as shown in the following
 commands.
 ```
 kps get connectorinstancealerts -s "svc-domain-1" -p NatsConnectorProject -i natsconnector -t natsconnectorstream-in
@@ -180,7 +184,7 @@ kps get connectorinstancestatus -s "svc-domain-1" -p NatsConnectorProject -i nat
 ```
 
 ## Go Connector SDK 
-This repository contains the Go libraries that can be used to build connectors that can interface with
+This repository contains the Go libraries you can use to build connectors to interface with
 Data Pipelines in Nutanix Karbon Platform Services.
 
 The library consists of the following Go packages:
@@ -189,15 +193,15 @@ The library consists of the following Go packages:
 - events: Contains the `Registry` and `Event` constructors that can be used for emitting events such as status and alerts for the Connector.
 
 ## Quick Start
-The fastest way to build your own Connector is by building one using our Golang Connector Template. The template is an
-opinionated implementation of a KPS connector written using the Golang Connector SDK with ease of modificaiton in mind.
+The fastest way to build your own Connector is by using our Golang Connector Template. The template is an
+opinionated implementation of a KPS connector written using the Golang Connector SDK with ease of modification in mind.
 
 You can find the connector template at [kps-connector-go-template](https://github.com/nutanix/kps-connector-go-template)
 and build template based connector in Golang by following the instructions in README.md on the template repo.
 
 ## FAQ
 Q: What Service Domain version do I need to be on to use KPS Connectors<br/>
-A: KPS Connectors require KPS Service Domain version 2.3.0 to work
+A: KPS Connectors require a KPS Service Domain, minimum version 2.3.0, to be deployed.
 
 Q: When to write your own Connector<br/>
 A: Nutanix provides a library of connectors made by Nutanix. If you don't find a connector that you need in the library, you can build a new connector.
