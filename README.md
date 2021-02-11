@@ -3,7 +3,7 @@ This is the Golang SDK for building KPS Connectors.
 
 ## Overview
 A KPS Connector is a kubernetes application that implements a specific GRPC contract. The contract is described in
-the [kps-connector-idl](github.com/nutanix/kps-connector-idl) repository which has also been submoduled in this repository. Particularly,
+the [kps-connector-idl](https://github.com/nutanix/kps-connector-idl) repository which has also been submoduled in this repository. Particularly,
 the service has to implement three methods in order to fulfil the Connector contract.
 
 ```proto
@@ -165,10 +165,18 @@ The connector config can be created using the CLI tool
 kps create connectorconfig -f config.json
 ```
 #### Event
-Event is a mechanism to propagate events such as status and alerts on behalf of the connector. Events emitted by the connector
-can be viewed using the CLI
+Event is a mechanism to propagate events such as status and alerts on behalf of the connector. Events emitted by the
+connector can be either connector scoped or stream scoped. Connector scoped events can be viewed using the CLI by
+running the following commands.
 ```
-kps get connectorevents -i f29673b0-10f4-44dc-b4fd-02331ace2ffa
+kps get connectorinstancealerts -s "svc-domain-1" -p NatsConnectorProject -i natsconnector
+kps get connectorinstancestatus -s "svc-domain-1" -p NatsConnectorProject -i natsconnector
+```
+The scope can be further narrowed down to stream specific events by passing the stream name as shown in the following
+commands.
+```
+kps get connectorinstancealerts -s "svc-domain-1" -p NatsConnectorProject -i natsconnector -t natsconnectorstream-in
+kps get connectorinstancestatus -s "svc-domain-1" -p NatsConnectorProject -i natsconnector -t natsconnectorstream-in
 ```
 
 ## Go Connector SDK 
@@ -176,7 +184,7 @@ This repository contains the Go libraries that can be used to build connectors t
 Data Pipelines in Nutanix Karbon Platform Services.
 
 The library consists of the following Go packages:
-- connector: Contains the generated Go protobuf and grpc stubs for service contract defined in  [kps-connector-idl](github.com/nutanix/kps-connector-idl). 
+- connector: Contains the generated Go protobuf and grpc stubs for service contract defined in  [kps-connector-idl](https://github.com/nutanix/kps-connector-idl). 
 - transport: Contains the `Client` that can publish data to and subscribe data from the streams defined in KPS.
 - events: Contains the `Registry` and `Event` constructors that can be used for emitting events such as status and alerts for the Connector.
 

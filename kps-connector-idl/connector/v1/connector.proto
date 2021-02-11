@@ -62,10 +62,10 @@ message SetPayloadResponse {
 
 enum StreamDirection {
     STREAM_DIRECTION_UNSPECIFIED = 0;
-    // StreamDirectionToTransport specifies a direction where data flows from the stream to data pipeline transport
-    STREAM_DIRECTION_FROM_STREAM_TO_TRANSPORT = 1;
-    // StreamDirectionFromTransport specifies a direction where data flows from data pipeline transport to the stream
-    STREAM_DIRECTION_FROM_TRANSPORT_TO_STREAM = 2;
+    // INGRESS specifies a direction where data flows from the stream to data pipeline transport
+    STREAM_DIRECTION_INGRESS = 1;
+    // EGRESS specifies a direction where data flows from data pipeline transport to the stream
+    STREAM_DIRECTION_EGRESS = 2;
 }
 
 // Stream is a mechanism for:
@@ -81,7 +81,7 @@ message Stream {
     // discovered specifies whether the stream was discovered by the connector instance
     bool discovered = 3;
 
-    // direction specifies the direction of data flow for a given stream i.e. from stream / to stream
+    // direction specifies the direction of data flow for a given stream i.e. ingress / egress
     StreamDirection direction = 4;
 
     // transport_channel specifies the channel for sending the stream through or receiving the stream from

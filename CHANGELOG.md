@@ -18,3 +18,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Github Actions CI job
 
 ### Updated
+
+- Update connector.proto and generated code to reflect changes to StreamDirection enum
