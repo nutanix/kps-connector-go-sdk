@@ -1,0 +1,3 @@
+[submodule "kps-connector-idl"]
+	path = kps-connector-idl
+	url = https://github.com/nutanix/kps-connector-idl

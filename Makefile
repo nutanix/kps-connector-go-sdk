@@ -2,23 +2,7 @@ SHELL := /usr/bin/env bash -o pipefail
 
 # This controls the location of the cache.
 PROJECT := kps-connector-go-sdk
-# This controls the remote HTTPS git location to compare against for breaking changes in CI.
-#
-# Most CI providers only clone the branch under test and to a certain depth, so when
-# running buf breaking in CI, it is generally preferable to compare against
-# the remote repository directly.
-#
-# Basic authentication is available, see https://buf.build/docs/inputs#https for more details.
-HTTPS_GIT := https://github.com/nutanix/kps-connector-go-sdk.git
-# This controls the remote SSH git location to compare against for breaking changes in CI.
-#
-# CI providers will typically have an SSH key installed as part of your setup for both
-# public and private repositories. Buf knows how to look for an SSH key at ~/.ssh/id_rsa
-# and a known hosts file at ~/.ssh/known_hosts or /etc/ssh/known_hosts without any further
-# configuration. We demo this with CircleCI.
-#
-# See https://buf.build/docs/inputs#ssh for more details.
-SSH_GIT := ssh://git@github.com/nutanix/kps-connector-go-sdk.git
+
 # This controls the version of buf to install and use.
 BUF_VERSION := 0.37.0
 # If true, Buf is installed from source instead of from releases
@@ -144,34 +128,8 @@ local: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC)
 	make test
 	make cover
 
-# https is what we run when testing in most CI providers.
-# This does breaking change detection against our remote HTTPS git repository.
-
-.PHONY: https
-https: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC)
-	make generate
-	make build
-	make install
-	make lint
-	make test
-	make cover
-
-# ssh is what we run when testing in CI providers that provide ssh public key authentication.
-# This does breaking change detection against our remote HTTPS ssh repository.
-# This is especially useful for private repositories.
-
-.PHONY: ssh
-ssh: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC)
-	make generate
-	make build
-	make install
-	make lint
-	make test
-	make cover
-
 # clean deletes any files not checked in and the cache for all platforms.
 
-.PHONY: clean
 clean:
 	git clean -xdf
 	rm -rf $(CACHE_BASE)
