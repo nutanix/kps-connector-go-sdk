@@ -30,7 +30,8 @@ This SDK provides generated golang stubs along with convenience libraries to bui
 #### Project
 Project is a KPS abstraction which corresponds to a multi-service-domain Kubernetes namespace.
 #### Category
-Category is a KPS abstraction which can be used as a selector for resources such as service domains or streams.
+Category is a KPS abstraction which can be used as a selector for resources such as service domains or streams. Categories,
+ in the context of streams, are also referred to as labels.
 #### Service Domain
 A service domain refers to a single-node or multi-node deployment of KPS.
 #### Data Pipeline
@@ -47,7 +48,52 @@ Class is a recipe that defines the type of connector. The Class is defined as a 
 In the example below, note how the `image_tag` is used to set the docker image tag at instance creation.
 - configParameterSchema: JSON schema of the connector config 
 - streamParameterSchema: JSON schema of the connector stream
+- yamlData: Stringified multipart YAML containing the kubernetes resources and a mandatory kubernetes service (separated by `---`).
 
+##### Example `connector.yaml`
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: natsconnector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: natsconnector
+  nats:
+    metadata:
+      name: natsconnector
+      labels:
+        app: natsconnector
+    spec:
+      containers:
+        - name: natsconnector
+          image: "770301640873.dkr.ecr.us-west-2.amazonaws.com/edgecomputing/connector/natsconnector:{{ .Parameters.image_tag }}"
+          imagePullPolicy: Always
+          securityContext:
+            runAsUser: 9999
+            allowPrivilegeEscalation: false
+          ports:
+            - containerPort: 8000
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: natsconnector-svc
+spec:
+  selector:
+    app: natsconnector
+  ports:
+    - protocol: TCP
+      name: natsconnector
+      port: 9000
+      targetPort: 8000
+```
+You can stringify the YAML file using `jq`
+```
+jq -Rs . < connector.yaml
+```
 
 ##### Example `class.json`
 ```json
@@ -55,7 +101,7 @@ In the example below, note how the `image_tag` is used to set the docker image t
   "name": "natsconnector",
   "description": "This is a class definition of NATS data connector.",
   "connectorVersion": "1.0",
-  "minSvcDomainVersion": "3.0.0",
+  "minSvcDomainVersion": "2.3.0",
   "type": "BIDIRECTIONAL",
   "staticParameterSchema": {
     "type": "object",
