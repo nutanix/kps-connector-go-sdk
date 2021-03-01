@@ -1,3 +1,4 @@
+// Copyright (c) 2021 Nutanix, Inc.
 /*
 Package transport provides a Publish/Subscribe interface for publishing data from streams to data pipelines
 or subscribing to data from the data pipelines to publish to the streams.

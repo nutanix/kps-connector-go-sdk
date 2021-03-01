@@ -1,3 +1,4 @@
+// Copyright (c) 2021 Nutanix, Inc.
 /*
 Package events provides a registry interface that allows for creating, registering, and publishing events
 such as status updates and alerts. Events are scraped from the connector on the service domain at a regular
