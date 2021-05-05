@@ -190,9 +190,11 @@ func (client *natsClient) natsMsgHandler(handler MessageHandler) nats.MsgHandler
 		if err != nil {
 			log.Printf("unable to unmarshal data from %s", msg.Subject)
 		}
-		hMsg := &Message{
-			Payload: tMsg.Payload[0],
+		for _, payload := range tMsg.GetPayload() {
+			hMsg := &Message{
+				Payload: payload,
+			}
+			handler(hMsg)
 		}
-		handler(hMsg)
 	}
 }
